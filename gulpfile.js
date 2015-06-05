@@ -1,24 +1,22 @@
 var gulp = require('gulp');
-var concat = require('gulp-concat');
 var uglify = require('gulp-uglify');
-var react = require('gulp-react');
 var htmlreplace = require('gulp-html-replace');
+var source = require('vinyl-source-stream');
+var browserify = require('browserify');
+var watchify = require('watchify');
+var reactify = require('reactify');
+var streamify = require('gulp-streamify');
+
 
 var path = {
     HTML: 'src/index.html',
-    ALL: ['src/js/*.js', 'src/js/**/*.js', 'src/index.html'],
-    JS: ['src/js/*.js', 'src/js/**/*.js'],
     MINIFIED_OUT: 'build.min.js',
+    OUT: 'build.js',
     DEST_SRC: 'dist/src',
     DEST_BUILD: 'dist/build',
-    DEST: 'dist'
+    DEST: 'dist',
+    ENTRY_POINT: './src/js/app.js'
 };
-
-gulp.task('transform', function() {
-    gulp.src(path.JS)
-        .pipe(react())
-        .pipe(gulp.dest(path.DEST_SRC));
-});
 
 gulp.task('copy', function() {
     gulp.src(path.HTML)
@@ -26,8 +24,47 @@ gulp.task('copy', function() {
 });
 
 gulp.task('watch', function() {
-    gulp.watch(path.ALL, ['transform', 'copy']);
+    gulp.watch(path.HTML, ['copy']);
+
+    var watcher = watchify(browserify({
+        entries: [path.ENTRY_POINT],
+        transform: [reactify],
+        debug: true,
+        cache: {},
+        packageCache: {},
+        fullPaths: true
+    }));
+
+    return watcher.on('update', function() {
+        watcher.bundle()
+            .pipe(source(path.OUT))
+            .pipe(gulp.dest(path.DEST_SRC));
+            console.log('Updated');
+    })
+        .bundle()
+        .pipe(source(path.OUT))
+        .pipe(gulp.dest(path.DEST_SRC));
 });
 
 gulp.task('default', ['watch']);
 
+gulp.task('build', function() {
+    browserify({
+        entries: [path.ENTRY_POINT],
+        transform: [reactify]
+    })
+        .bundle()
+        .pipe(source(path.MINIFIED_OUT))
+        .pipe(streamify(uglify(path.MINIFIED_OUT)))
+        .pipe(gulp.dest(path.DEST_BUILD));
+});
+
+gulp.task('replaceHTML', function() {
+    gulp.src(path.HTML)
+        .pipe(htmlreplace({
+            'js': 'build/' + path.MINIFIED_OUT
+        }))
+        .pipe(gulp.dest(path.DEST));
+});
+
+gulp.task('production', ['replaceHTML', 'build']);
