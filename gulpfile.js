@@ -24,7 +24,7 @@ gulp.task('copy', function() {
 });
 
 gulp.task('watch', function() {
-    gulp.watch(path.HTML, ['copy']);
+    gulp.watch(path.HTML, ['replaceHTMLsrc']);
 
     var watcher = watchify(browserify({
         entries: [path.ENTRY_POINT],
@@ -57,6 +57,14 @@ gulp.task('build', function() {
         .pipe(source(path.MINIFIED_OUT))
         .pipe(streamify(uglify(path.MINIFIED_OUT)))
         .pipe(gulp.dest(path.DEST_BUILD));
+});
+
+gulp.task('replaceHTMLsrc', function() {
+    gulp.src(path.HTML)
+        .pipe(htmlreplace({
+            'js': 'src/' + path.OUT
+        }))
+        .pipe(gulp.dest(path.DEST));
 });
 
 gulp.task('replaceHTML', function() {
