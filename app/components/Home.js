@@ -8,7 +8,7 @@ class Home extends React.Component {
       <div className="container-fluid">
         <Messages messages={this.props.messages}/>
         <div className="row">
-          <div className="col-sm-4">
+          <div className="col-sm-12">
             <div className="panel">
               <div className="panel-body">
                 <h3>Heading</h3>
@@ -19,7 +19,9 @@ class Home extends React.Component {
               </div>
             </div>
           </div>
-          <div className="col-sm-4">
+        </div>
+        <div className="row">
+          <div className="col-sm-6">
             <div className="panel">
               <div className="panel-body">
                 <h3>Heading</h3>
@@ -30,7 +32,7 @@ class Home extends React.Component {
               </div>
             </div>
           </div>
-          <div className="col-sm-4">
+          <div className="col-sm-6">
             <div className="panel">
               <div className="panel-body">
                 <h3>Heading</h3>
