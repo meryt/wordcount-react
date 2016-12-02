@@ -1,78 +1,66 @@
 var gulp = require('gulp');
-var uglify = require('gulp-uglify');
-var htmlreplace = require('gulp-html-replace');
-var source = require('vinyl-source-stream');
+var gutil = require('gulp-util');
+var gulpif = require('gulp-if');
+var argv = require('yargs').argv;
 var browserify = require('browserify');
+var babelify = require('babelify');
 var watchify = require('watchify');
-var reactify = require('reactify');
-var streamify = require('gulp-streamify');
+var source = require('vinyl-source-stream');
+var autoprefixer = require('gulp-autoprefixer');
+var sass = require('gulp-sass');
+var csso = require('gulp-csso');
+var buffer = require('vinyl-buffer');
+var uglify = require('gulp-uglify');
+var sourcemaps = require('gulp-sourcemaps');
+var plumber = require('gulp-plumber');
 
+gulp.task('sass', function() {
+  return gulp.src('public/css/main.scss')
+    .pipe(plumber())
+    .pipe(sass())
+    .pipe(autoprefixer())
+    .pipe(gulpif(argv.production, csso()))
+    .pipe(gulp.dest('public/css'));
+});
 
-var path = {
-    HTML: 'src/index.html',
-    MINIFIED_OUT: 'build.min.js',
-    OUT: 'build.js',
-    DEST_SRC: 'dist/src',
-    DEST_BUILD: 'dist/build',
-    DEST: 'dist',
-    ENTRY_POINT: './src/js/app.js'
-};
+gulp.task('react', function() {
+  return browserify({ entries: 'app/main.js', debug: true })
+    .transform('babelify', { presets: ['es2015', 'react'] })
+    .bundle()
+    .pipe(source('bundle.js'))
+    .pipe(buffer())
+    .pipe(sourcemaps.init({ loadMaps: true }))
+    .pipe(gulpif(argv.production, uglify()))
+    .pipe(sourcemaps.write('.'))
+    .pipe(gulp.dest('public/js'));
+});
 
-gulp.task('copy', function() {
-    gulp.src(path.HTML)
-        .pipe(gulp.dest(path.DEST));
+gulp.task('watchify', function() {
+  var bundler = watchify(browserify({ entries: 'app/main.js', debug: true }, watchify.args));
+  bundler.transform('babelify', { presets: ['es2015', 'react'] });
+  bundler.on('update', rebundle);
+  return rebundle();
+
+  function rebundle() {
+    var start = Date.now();
+    return bundler.bundle()
+      .on('error', function(err) {
+        gutil.log(gutil.colors.red(err.toString()));
+      })
+      .on('end', function() {
+        gutil.log(gutil.colors.green('Finished rebundling in', (Date.now() - start) + 'ms'));
+      })
+      .pipe(source('bundle.js'))
+      .pipe(buffer())
+      .pipe(sourcemaps.init({ loadMaps: true }))
+      .pipe(sourcemaps.write('.'))
+      .pipe(gulp.dest('public/js'));
+  }
 });
 
 gulp.task('watch', function() {
-    gulp.watch(path.HTML, ['replaceHTMLsrc']);
-
-    var watcher = watchify(browserify({
-        entries: [path.ENTRY_POINT],
-        transform: [reactify],
-        debug: true,
-        cache: {},
-        packageCache: {},
-        fullPaths: true
-    }));
-
-    return watcher.on('update', function() {
-        watcher.bundle()
-            .pipe(source(path.OUT))
-            .pipe(gulp.dest(path.DEST_SRC));
-            console.log('Updated');
-    })
-        .bundle()
-        .pipe(source(path.OUT))
-        .pipe(gulp.dest(path.DEST_SRC));
+  gulp.watch('public/css/**/*.scss', ['sass']);
 });
 
-gulp.task('default', ['watch']);
-
-gulp.task('build', function() {
-    browserify({
-        entries: [path.ENTRY_POINT],
-        transform: [reactify]
-    })
-        .bundle()
-        .pipe(source(path.MINIFIED_OUT))
-        .pipe(streamify(uglify(path.MINIFIED_OUT)))
-        .pipe(gulp.dest(path.DEST_BUILD));
-});
-
-gulp.task('replaceHTMLsrc', function() {
-    gulp.src(path.HTML)
-        .pipe(htmlreplace({
-            'js': 'src/' + path.OUT
-        }))
-        .pipe(gulp.dest(path.DEST));
-});
-
-gulp.task('replaceHTML', function() {
-    gulp.src(path.HTML)
-        .pipe(htmlreplace({
-            'js': 'build/' + path.MINIFIED_OUT
-        }))
-        .pipe(gulp.dest(path.DEST));
-});
-
-gulp.task('production', ['replaceHTML', 'build']);
+gulp.task('build', ['sass', 'react']);
+gulp.task('default', ['build', 'watch', 'watchify']);
