@@ -1,7 +1,7 @@
 {
-  "name": "lively-hill",
+  "name": "wordcount-react",
   "version": "1.0.0",
-  "description": "My app description",
+  "description": "Word Count",
   "scripts": {
     "build": "gulp build",
     "build:production": "gulp build --production",
@@ -40,8 +40,10 @@
     "morgan": "^1.7.0",
     "nodemailer": "^2.3.0",
     "pg": "^4.5.1",
-    "react": "15.1.0",
-    "react-dom": "15.1.0",
+    "react": "^15.4.1",
+    "react-bootstrap": "^0.30.2",
+    "react-bootstrap-date-picker": "^4.0.0",
+    "react-dom": "^15.4.1",
     "react-redux": "4.4.1",
     "react-router": "^2.4.0",
     "redux": "^3.3.1",
